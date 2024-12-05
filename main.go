@@ -10,7 +10,7 @@ import (
 
 	"github.com/dvcrn/pocketsmith-anapay/anapay"
 
-	"github.com/dvcrn/pocketsmith-anapay/pocketsmith"
+	"github.com/dvcrn/pocketsmith-go"
 )
 
 const INSTITUION_NAME = "ANA Pay"
