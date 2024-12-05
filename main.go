@@ -122,7 +122,13 @@ func main() {
 		panic(err)
 	}
 
+	repeatedExistingTransactions := 0
 	for _, tx := range txs {
+		if repeatedExistingTransactions > 10 {
+			fmt.Println("Too many repeated existing transactions, exiting")
+			break
+		}
+
 		amount := 0.0
 		if tx.Amount != "" {
 			parsedAmount, _ := strconv.ParseFloat(tx.Amount, 64)
@@ -173,6 +179,7 @@ func main() {
 
 		if len(searchRes) > 0 {
 			fmt.Println("Found transaction already, won't add it again: ", name)
+			repeatedExistingTransactions++
 			continue
 		}
 
