@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dvcrn/pocketsmith-anapay/anapay"
+	"github.com/dvcrn/romajiconv"
 
 	"github.com/dvcrn/pocketsmith-go"
 )
@@ -140,7 +141,7 @@ func main() {
 	fmt.Println("Found ", len(allTxs), " transactions")
 
 	repeatedExistingTransactions := 0
-	for _, tx := range allTxs {
+	for i, tx := range allTxs {
 		if repeatedExistingTransactions > 10 {
 			fmt.Println("Too many repeated existing transactions, exiting")
 			break
@@ -194,29 +195,32 @@ func main() {
 			fmt.Println("Error parsing date: ", err)
 			continue
 		}
+
+		convertedPayee := romajiconv.ConvertFullWidthToHalf(strings.TrimSpace(name))
 		createTx := &pocketsmith.CreateTransaction{
-			Payee:        strings.TrimSpace(name),
+			Payee:        convertedPayee,
 			Amount:       amount,
-			Date:         tx.SaleDatetime[0:8], // Convert YYYYMMDDHHMMSS to YYYYMMDD
+			Date:         date.Format("2006-01-02"),
 			IsTransfer:   isTransfer,
 			Note:         "",
-			Memo:         strings.TrimSpace(bookingText),
+			Memo:         fmt.Sprintf("%s %s %s", strings.TrimSpace(name), tx.WalletSettlementNo, bookingText),
 			ChequeNumber: tx.WalletSettlementNo,
 		}
 
-		searchByChequeResponse, err := ps.SearchTransactionsByChequeNumber(account.PrimaryTransactionAccount.ID, date, tx.WalletSettlementNo)
+		searchResponse, err := ps.SearchTransactionsByMemoContains(account.PrimaryTransactionAccount.ID, date, tx.WalletSettlementNo)
 		if err != nil {
 			fmt.Println("Error searching for transaction: ", err)
 			continue
 		}
 
-		if len(searchByChequeResponse) > 0 {
+		if len(searchResponse) > 0 {
 			fmt.Println("Found transaction already, won't add it again: ", name)
 			repeatedExistingTransactions++
 			continue
 		}
 
-		fmt.Println("Creating transaction with createTx: ", createTx.Payee, createTx.Amount, createTx.Date, createTx.IsTransfer, createTx.Note)
+		fmt.Printf("[%d/%d] Creating transaction with createTx: %s %f %s %t %s\n", i+1, len(allTxs), createTx.Payee, createTx.Amount, createTx.Date, createTx.IsTransfer, createTx.Note)
+
 		_, err = ps.AddTransaction(account.TransactionAccounts[0].ID, createTx)
 		if err != nil {
 			fmt.Printf("Error creating transaction: %v\n", err)
