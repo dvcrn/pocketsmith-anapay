@@ -117,13 +117,30 @@ func main() {
 
 	fmt.Println("Updated account balance: ", updateAccountRes.StartingBalance)
 
-	txs, err := anapay.GetTransactions(loginResponse.AccessToken, 1, config.NumTransactions)
-	if err != nil {
-		panic(err)
+	var allTxs []anapay.Transaction
+	pageNum := 1
+	for {
+		txs, err := anapay.GetTransactions(loginResponse.AccessToken, pageNum, 999)
+		if err != nil {
+			panic(err)
+		}
+
+		if len(txs) == 0 {
+			break
+		}
+
+		allTxs = append(allTxs, txs...)
+		if len(allTxs) > config.NumTransactions {
+			break
+		}
+
+		pageNum++
 	}
 
+	fmt.Println("Found ", len(allTxs), " transactions")
+
 	repeatedExistingTransactions := 0
-	for _, tx := range txs {
+	for _, tx := range allTxs {
 		if repeatedExistingTransactions > 10 {
 			fmt.Println("Too many repeated existing transactions, exiting")
 			break
@@ -171,24 +188,32 @@ func main() {
 			name = bookingText
 		}
 
-		// try to find the transaction first
-		searchRes, err := ps.SearchTransactions(account.PrimaryTransactionAccount.ID, tx.SaleDatetime[0:8], tx.SaleDatetime[0:8], fmt.Sprintf("%s %s", tx.Amount, strings.TrimSpace(tx.SaleDatetime)))
+		// parse date from 20241211070348 into golang time
+		date, err := time.Parse("20060102150405", tx.SaleDatetime)
 		if err != nil {
-			panic(err)
+			fmt.Println("Error parsing date: ", err)
+			continue
+		}
+		createTx := &pocketsmith.CreateTransaction{
+			Payee:        strings.TrimSpace(name),
+			Amount:       amount,
+			Date:         tx.SaleDatetime[0:8], // Convert YYYYMMDDHHMMSS to YYYYMMDD
+			IsTransfer:   isTransfer,
+			Note:         "",
+			Memo:         strings.TrimSpace(bookingText),
+			ChequeNumber: tx.WalletSettlementNo,
 		}
 
-		if len(searchRes) > 0 {
-			fmt.Println("Found transaction already, won't add it again: ", name)
-			repeatedExistingTransactions++
+		searchByChequeResponse, err := ps.SearchTransactionsByChequeNumber(account.PrimaryTransactionAccount.ID, date, tx.WalletSettlementNo)
+		if err != nil {
+			fmt.Println("Error searching for transaction: ", err)
 			continue
 		}
 
-		createTx := &pocketsmith.CreateTransaction{
-			Payee:      strings.TrimSpace(name),
-			Amount:     amount,
-			Date:       tx.SaleDatetime[0:8], // Convert YYYYMMDDHHMMSS to YYYYMMDD
-			IsTransfer: isTransfer,
-			Note:       fmt.Sprintf("%s %s", tx.SaleDatetime, strings.TrimSpace(bookingText)),
+		if len(searchByChequeResponse) > 0 {
+			fmt.Println("Found transaction already, won't add it again: ", name)
+			repeatedExistingTransactions++
+			continue
 		}
 
 		fmt.Println("Creating transaction with createTx: ", createTx.Payee, createTx.Amount, createTx.Date, createTx.IsTransfer, createTx.Note)
