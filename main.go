@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/dvcrn/pocketsmith-anapay/anapay"
-	"github.com/dvcrn/romajiconv"
+	"github.com/dvcrn/pocketsmith-anapay/sanitizer"
 
 	"github.com/dvcrn/pocketsmith-go"
 )
@@ -196,7 +196,7 @@ func main() {
 			continue
 		}
 
-		convertedPayee := romajiconv.ConvertFullWidthToHalf(strings.TrimSpace(name))
+		convertedPayee := sanitizer.Sanitize(name)
 		createTx := &pocketsmith.CreateTransaction{
 			Payee:        convertedPayee,
 			Amount:       amount,
