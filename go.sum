@@ -6,6 +6,8 @@ github.com/dvcrn/pocketsmith-go v0.0.0-20241213060507-dc44d0b18caf h1:SV6DS2PYES
 github.com/dvcrn/pocketsmith-go v0.0.0-20241213060507-dc44d0b18caf/go.mod h1:rRx2gtJK+78Po3CCQzaZzfb7rcNSxhq4r3xz7Cj9U8M=
 github.com/dvcrn/pocketsmith-go v0.0.0-20241213060714-89b97a49580f h1:Trmx/7H3wLC//GHg7CmdZ29UZ0msNe8xuhpYeLJzJKs=
 github.com/dvcrn/pocketsmith-go v0.0.0-20241213060714-89b97a49580f/go.mod h1:rRx2gtJK+78Po3CCQzaZzfb7rcNSxhq4r3xz7Cj9U8M=
+github.com/dvcrn/pocketsmith-go v0.0.0-20250106020014-f10cbfe20d70 h1:oZW98o4hzFP6kGtNjHzQI3MsxAw8GtjNbMEuxAPgC3s=
+github.com/dvcrn/pocketsmith-go v0.0.0-20250106020014-f10cbfe20d70/go.mod h1:rRx2gtJK+78Po3CCQzaZzfb7rcNSxhq4r3xz7Cj9U8M=
 github.com/dvcrn/romajiconv v0.0.0-20241213055119-a85455596493 h1:iwLB+qQipnFACQOsEyZHc5TO0J7DJSqAKiYPnk3S22s=
 github.com/dvcrn/romajiconv v0.0.0-20241213055119-a85455596493/go.mod h1:Spm4oRihWuuSf6znGoXTFPj3aafW1DRFWfSEDiPGsFE=
 github.com/dvcrn/romajiconv v0.0.0-20241213070614-a73da9352b56 h1:g3Cs+xYcfRVbmUw7LVqXcBfrGd0Z/tH2HX4NlQsQh9c=

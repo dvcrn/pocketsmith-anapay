@@ -107,17 +107,6 @@ func main() {
 		panic(err)
 	}
 
-	balanceFloat, err := strconv.ParseFloat(anaPayAccounts.Balance, 64)
-	if err != nil {
-		panic(err)
-	}
-	updateAccountRes, err := ps.UpdateTransactionAccount(account.PrimaryTransactionAccount.ID, account.PrimaryTransactionAccount.Institution.ID, balanceFloat, time.Now().Format("2006-01-02"))
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Updated account balance: ", updateAccountRes.StartingBalance)
-
 	var allTxs []anapay.Transaction
 	pageNum := 1
 	for {
@@ -197,7 +186,7 @@ func main() {
 		}
 
 		convertedPayee := sanitizer.Sanitize(name)
-		createTx := &pocketsmith.CreateTransaction{
+		createTx := &pocketsmith.Transaction{
 			Payee:        convertedPayee,
 			Amount:       amount,
 			Date:         date.Format("2006-01-02"),
@@ -226,5 +215,31 @@ func main() {
 			fmt.Printf("Error creating transaction: %v\n", err)
 			continue
 		}
+	}
+
+	fmt.Println("Checking balance...")
+	account, err = findOrCreateAccount(ps, res.ID, ACCOUNT_NAME)
+	if err != nil {
+		fmt.Println("could not find or create account")
+		panic(err)
+	}
+
+	balanceFloat, err := strconv.ParseFloat(anaPayAccounts.Balance, 64)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("ANA Pay Balance %.2f\n", balanceFloat)
+	fmt.Printf("Pocketsmith %.2f\n", balanceFloat)
+	if balanceFloat < account.CurrentBalance {
+		fmt.Println("Balance is less than pocketsmith account balance, updating starting balance")
+		updateAccountRes, err := ps.UpdateTransactionAccount(account.PrimaryTransactionAccount.ID, account.PrimaryTransactionAccount.Institution.ID, balanceFloat, time.Now().Format("2006-01-02"))
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println("Updated account balance: ", updateAccountRes.StartingBalance)
+	} else {
+		fmt.Println("No balance update needed at this time.")
 	}
 }
