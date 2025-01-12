@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -10,9 +11,32 @@ import (
 
 	"github.com/dvcrn/pocketsmith-anapay/anapay"
 	"github.com/dvcrn/pocketsmith-anapay/sanitizer"
+	"github.com/getsentry/sentry-go"
 
 	"github.com/dvcrn/pocketsmith-go"
 )
+
+func init() {
+	sentryDsn := os.Getenv("SENTRY_DSN")
+	if sentryDsn == "" {
+		log.Println("Warning: Sentry DSN not set. Sentry error tracking will be disabled")
+		return
+	}
+
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn:              sentryDsn,
+		Environment:      "production",
+		Debug:            true,
+		TracesSampleRate: 1.0,
+	})
+
+	if err != nil {
+		log.Fatalf("sentry.Init: %s", err)
+	}
+
+	// Flush buffered events before the program terminates
+	defer sentry.Flush(2 * time.Second)
+}
 
 const INSTITUION_NAME = "ANA Pay"
 const ACCOUNT_NAME = "ANA Pay"
@@ -88,22 +112,26 @@ func main() {
 	ps := pocketsmith.NewClient(config.PocketsmithToken)
 	res, err := ps.GetCurrentUser()
 	if err != nil {
+		sentry.CaptureException(err)
 		panic(err)
 	}
 
 	account, err := findOrCreateAccount(ps, res.ID, ACCOUNT_NAME)
 	if err != nil {
 		fmt.Println("could not find or create account")
+		sentry.CaptureException(err)
 		panic(err)
 	}
 
 	loginResponse, err := anapay.Login(config.AnapayUsername, config.AnapayPassword)
 	if err != nil {
+		sentry.CaptureException(err)
 		panic(err)
 	}
 
 	anaPayAccounts, err := anapay.GetAccounts(loginResponse.AccessToken)
 	if err != nil {
+		sentry.CaptureException(err)
 		panic(err)
 	}
 
@@ -112,6 +140,7 @@ func main() {
 	for {
 		txs, err := anapay.GetTransactions(loginResponse.AccessToken, pageNum, 999)
 		if err != nil {
+			sentry.CaptureException(err)
 			panic(err)
 		}
 
@@ -181,6 +210,7 @@ func main() {
 		// parse date from 20241211070348 into golang time
 		date, err := time.Parse("20060102150405", tx.SaleDatetime)
 		if err != nil {
+			sentry.CaptureException(err)
 			fmt.Println("Error parsing date: ", err)
 			continue
 		}
@@ -212,6 +242,7 @@ func main() {
 
 		_, err = ps.AddTransaction(account.TransactionAccounts[0].ID, createTx)
 		if err != nil {
+			sentry.CaptureException(err)
 			fmt.Printf("Error creating transaction: %v\n", err)
 			continue
 		}
@@ -220,12 +251,14 @@ func main() {
 	fmt.Println("Checking balance...")
 	account, err = findOrCreateAccount(ps, res.ID, ACCOUNT_NAME)
 	if err != nil {
+		sentry.CaptureException(err)
 		fmt.Println("could not find or create account")
 		panic(err)
 	}
 
 	balanceFloat, err := strconv.ParseFloat(anaPayAccounts.Balance, 64)
 	if err != nil {
+		sentry.CaptureException(err)
 		panic(err)
 	}
 
@@ -235,6 +268,7 @@ func main() {
 		fmt.Println("Balance is less than pocketsmith account balance, updating starting balance")
 		updateAccountRes, err := ps.UpdateTransactionAccount(account.PrimaryTransactionAccount.ID, account.PrimaryTransactionAccount.Institution.ID, balanceFloat, time.Now().Format("2006-01-02"))
 		if err != nil {
+			sentry.CaptureException(err)
 			panic(err)
 		}
 
