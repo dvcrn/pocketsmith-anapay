@@ -34,8 +34,6 @@ func init() {
 		log.Fatalf("sentry.Init: %s", err)
 	}
 
-	// Flush buffered events before the program terminates
-	defer sentry.Flush(2 * time.Second)
 }
 
 const INSTITUION_NAME = "ANA Pay"
@@ -107,6 +105,8 @@ func findOrCreateAccount(ps *pocketsmith.Client, userID int, accountName string)
 }
 
 func main() {
+	defer sentry.Flush(2 * time.Second)
+
 	config := getConfig()
 
 	ps := pocketsmith.NewClient(config.PocketsmithToken)
@@ -134,6 +134,8 @@ func main() {
 		sentry.CaptureException(err)
 		panic(err)
 	}
+
+	fmt.Printf("ANA Pay accounts response: %+v\n", anaPayAccounts)
 
 	var allTxs []anapay.Transaction
 	pageNum := 1
